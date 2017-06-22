@@ -9,9 +9,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         supervisor \
         lxde x11vnc xvfb \
-	nginx net-tools \
+	nginx \
+# noVNC deps
+	net-tools \
+# Tribler deps
 	libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-cryptography python-decorator python-feedparser python-leveldb python-libtorrent python-matplotlib python-m2crypto python-netifaces python-pil python-pyasn1 python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg \
-    && apt-get autoclean \
+    && apt-get clean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 
@@ -28,6 +31,18 @@ COPY conf/nginx.default /etc/nginx/sites-available/default
 COPY conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY start.sh /start.sh
 
-RUN mkdir /TriblerDownloads /TriblerWatch
+ENV USER tribler
+ENV HOME /home/$USER
+ENV API_PORT 8085
+
+RUN useradd -m --home-dir $HOME $USER \
+    && chown -R $USER:$USER $HOME \
+    && mkdir /TriblerDownloads \
+    && chown -R $USER:$USER /TriblerDownloads \
+    && ln -s $HOME/Downloads/TriblerDownloads /TriblerDownloads
+
+WORKDIR $HOME
+
+EXPOSE $API_PORT
 
 ENTRYPOINT ["/start.sh"]
