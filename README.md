@@ -9,7 +9,7 @@ docker build -t pimlie/docker-tribler-vnc docker-tribler-vnc
 ## How to run
 ```
 sudo docker run -d \
-	--network=host
+	--network=host \
 	-v /home/tribler/.Tribler:/home/tribler/.Tribler \
 	-v /my/download/folder:/TriblerDownloads \
 	--name docker-tribler-vnc \
