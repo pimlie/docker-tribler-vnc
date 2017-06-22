@@ -43,6 +43,10 @@ RUN useradd -m --home-dir $HOME $USER \
 
 WORKDIR $HOME
 
+EXPOSE 6081
+
 EXPOSE $API_PORT
+
+EXPOSE 1900/udp
 
 ENTRYPOINT ["/start.sh"]
