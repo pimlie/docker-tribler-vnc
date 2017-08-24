@@ -1,26 +1,46 @@
-server {
-	listen 6081 default_server;
-	#listen [::]:6080 default_server ipv6only=on;
+worker_processes 1;
+daemon off;
+pid /run/nginx.pid;
+user tribler;
 
-	root /usr/share/nginx/html;
-	index index.html index.htm vnc.html;
+events {
+    worker_connections 4096;
+    multi_accept on;
+    use epoll;
+}
 
-    location / {
-        try_files $uri @proxy;
-    }
+http {
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 30;
 
-    location @proxy {
-        proxy_set_header X-Real-IP  $remote_addr;
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header Host $host;
-        proxy_pass http://127.0.0.1:6082;
-        max_ranges 0;
-    }
+    server {
+        listen 6080 default_server;
+        #listen [::]:6080 default_server ipv6only=on;
 
-    location = /websockify {
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass http://127.0.0.1:6082;
+        root /usr/share/nginx/html;
+        index index.html index.htm vnc.html;
+
+        location / {
+            try_files $uri @proxy;
+        }
+
+        location @proxy {
+            proxy_set_header X-Real-IP  $remote_addr;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header Host $host;
+            proxy_pass http://127.0.0.1:6081;
+            proxy_max_temp_file_size 0;
+            max_ranges 0;
+        }
+
+        location = /websockify {
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_pass http://127.0.0.1:6081;
+            proxy_max_temp_file_size 0;
+        }
     }
 }

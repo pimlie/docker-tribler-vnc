@@ -1,51 +1,49 @@
 FROM ubuntu:16.04
 MAINTAINER pimlie <pimlie@hotmail.com>
 
-ENV DEBIAN_FRONTEND noninteractive
-
 ENV UID 1000
+ENV GID 1000
+ENV VNC_PORT 5900
 ENV API_PORT 8085
 
+ENV DEBIAN_FRONTEND noninteractive
 RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         supervisor \
-        lxde x11vnc xvfb \
-	nginx \
+        xvfb supervisor x11vnc git ca-certificates lxde \
 # noVNC deps
-	net-tools \
+	net-tools nginx \
 # Tribler deps
 	libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-cryptography python-decorator python-feedparser python-leveldb python-libtorrent python-matplotlib python-m2crypto python-netifaces python-pil python-pyasn1 python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg \
     && apt-get clean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 
-ENV TINI_VERSION v0.14.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
-RUN chmod +x /usr/bin/tini
-
 ADD libs/ /opt/
 
 RUN ln -s /opt/websockify/run /usr/local/bin/websockify
 
-COPY conf/openbox.xml /root/.config/openbox/rc.xml
-COPY conf/nginx.default /etc/nginx/sites-available/default
-COPY conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY start.sh /start.sh
+COPY conf/openbox.xml /home/tribler/.config/openbox/rc.xml
+COPY conf/nginx.default /etc/nginx/nginx.conf
+COPY conf/supervisord.conf /etc/supervisord.conf
 
-RUN useradd --uid $UID --home-dir /home/tribler tribler \
-    && chown -R tribler:tribler /home/tribler \
-    && mkdir /TriblerDownloads \
-    && chown -R tribler:tribler /TriblerDownloads \
-    && ln -s /home/tribler/Downloads/TriblerDownloads /TriblerDownloads
+RUN addgroup --gid $GID tribler \
+    && useradd --uid $UID -g tribler --home-dir /home/tribler tribler \
+    && echo "tribler:tribler" | /usr/sbin/chpasswd \
+    && TD_PATH=/home/tribler/TriblerDownloads \
+    && mkdir -p "$TD_PATH" \
+    && chown tribler:tribler "$TD_PATH" \
+    && ln -s "$TD_PATH" / \
+    && mkdir -p /opt/tribler \
+    && cd /opt/tribler \
+    && git clone --recursive --depth 1 https://github.com/Tribler/tribler -b next /opt/tribler
 
 WORKDIR /home/tribler
 
-EXPOSE 6081
+VOLUME ["/TriblerDownloads"]
 
-EXPOSE $API_PORT
+EXPOSE $VNC_PORT 6081 $API_PORT
 
-EXPOSE 1900/udp
-
-ENTRYPOINT ["/start.sh"]
+CMD ["/usr/bin/supervisord","-c","/etc/supervisord.conf"]
