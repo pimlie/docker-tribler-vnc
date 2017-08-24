@@ -3,6 +3,9 @@ MAINTAINER pimlie <pimlie@hotmail.com>
 
 ENV DEBIAN_FRONTEND noninteractive
 
+ENV UID 1000
+ENV API_PORT 8085
+
 RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list
 
 RUN apt-get update \
@@ -31,17 +34,13 @@ COPY conf/nginx.default /etc/nginx/sites-available/default
 COPY conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY start.sh /start.sh
 
-ENV USER tribler
-ENV HOME /home/$USER
-ENV API_PORT 8085
-
-RUN useradd -m --home-dir $HOME $USER \
-    && chown -R $USER:$USER $HOME \
+RUN useradd --uid $UID --home-dir /home/tribler tribler \
+    && chown -R tribler:tribler /home/tribler \
     && mkdir /TriblerDownloads \
-    && chown -R $USER:$USER /TriblerDownloads \
-    && ln -s $HOME/Downloads/TriblerDownloads /TriblerDownloads
+    && chown -R tribler:tribler /TriblerDownloads \
+    && ln -s /home/tribler/Downloads/TriblerDownloads /TriblerDownloads
 
-WORKDIR $HOME
+WORKDIR /home/tribler
 
 EXPOSE 6081
 

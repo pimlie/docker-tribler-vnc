@@ -4,6 +4,3 @@
 [submodule "libs/websockify"]
 	path = libs/websockify
 	url = https://github.com/novnc/websockify
-[submodule "libs/tribler"]
-	path = libs/tribler
-	url = https://github.com/Tribler/tribler

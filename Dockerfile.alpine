@@ -1,0 +1,54 @@
+FROM alpine:edge
+MAINTAINER pimlie <pimlie@hotmail.com>
+
+ENV UID 1000
+
+ADD alpine-repo/x86_64 /home/tribler/repo/x86_64
+ADD alpine-repo/tribler-599f07bc.rsa.pub /etc/apk/keys/
+
+RUN apk --no-cache \
+    --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing \
+    --repository http://dl-cdn.alpinelinux.org/alpine/edge/community \
+    --repository /home/tribler/repo \
+    add \
+    xvfb openbox xfce4-terminal supervisor x11vnc sudo dbus \
+    alpine-sdk python2-dev \
+# noVNC deps
+    net-tools \
+# tribler deps
+    libsodium libx11 python2 py2-pip py2-apsw py2-cherrypy py2-cryptography py2-decorator py2-dnspython py2-ecdsa py2-feedparser py2-jsonrpclib py2-m2crypto py2-netifaces py2-protobuf py2-asn1 py2-requests py2-chardet py2-configobj py2-libnacl py-matplotlib py-twisted py-slowaes \
+# self-build, not or no recent version in any repo
+    py2-qt5 libtorrent-rasterbar \
+# use git
+    git \
+# or wget
+#    wget ca-certificates \
+    && pip2 install keyring keyrings.alt leveldb pbkdf2 pysocks networkx incremental constantly \
+    && apk del alpine-sdk python2-dev py2-pip 2>/dev/null \
+    && rm -rf /apk /tmp/* /var/cache/apk/* \
+    && addgroup tribler \
+    && adduser -u $UID -G tribler -s /bin/sh -D tribler \
+    && echo "tribler:tribler" | /usr/sbin/chpasswd
+
+ADD supervisord.conf /etc/supervisord.conf
+
+WORKDIR /home/tribler
+
+COPY conf/openbox.xml /home/tribler/.config/openbox/rc.xml
+#COPY conf/nginx.default /etc/nginx/sites-available/default
+COPY conf/supervisord.conf /etc/supervisord.conf
+
+# Either use git
+RUN mkdir -p /opt/tribler \
+    && cd /opt/tribler \
+    && git clone --recursive --depth 1 https://github.com/Tribler/tribler -b next /opt/tribler
+
+# or use release tarball, this takes a little bit less space
+#RUN TARBALL=$(wget -q "https://api.github.com/repos/Tribler/tribler/releases" -O - | grep tarball_url | head -1 | cut -d'"' -f4) \
+##" highligh fix
+#    && wget -q "$TARBALL" -O /home/tribler/tribler.tar.gz \
+#    && mkdir -p /opt/tribler \
+#    && tar -xzf /home/tribler/tribler.tar.gz -C /opt/tribler/ --strip-components=1 \
+#    && rm /home/tribler/tribler.tar.gz
+
+CMD ["/usr/bin/supervisord","-c","/etc/supervisord.conf"]

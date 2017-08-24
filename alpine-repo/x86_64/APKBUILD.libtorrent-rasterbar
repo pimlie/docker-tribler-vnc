@@ -1,0 +1,36 @@
+# Contributor: August Klein <amatcoder@gmail.com>
+# Maintainer: August Klein <amatcoder@gmail.com>
+pkgname=libtorrent-rasterbar
+# Note: version 1.1.0 is not supported by deluge 1.3.12
+pkgver=1.1.4
+_pkgver=${pkgver%.0}
+_pkgver=${_pkgver//./_}
+pkgrel=3
+pkgdesc="A feature complete C++ bittorrent implementation"
+url="http://www.rasterbar.com/products/libtorrent"
+arch="all"
+license="BSD"
+depends=""
+depends_dev="boost-dev libressl-dev python2-dev"
+makedepends="$depends_dev linux-headers"
+subpackages="$pkgname-dev"
+source="https://github.com/arvidn/libtorrent/releases/download/libtorrent-$_pkgver/$pkgname-$pkgver.tar.gz"
+
+builddir="$srcdir"/$pkgname-$pkgver
+
+build() {
+	cd "$builddir"
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--enable-python-binding \
+		--with-boost-system=boost_system || return 1
+	make || return 1
+}
+package() {
+	cd "$builddir"
+	make DESTDIR="$pkgdir" install || return 1
+}
+
+sha512sums="50f5dfffbd9e6ba21dbe328be17962f29088a326c2c2bf177e1137ed2900323b9a5bae75ee63635404928452f206c72dd4f9100438a6b802bd36b11430e51bc3  libtorrent-rasterbar-1.1.4.tar.gz"
